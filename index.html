@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebP Converter — Convertisseur d'images</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Theme Toggle -->
+  <button id="themeToggle" class="theme-toggle" aria-label="Basculer le thème">
+    <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1>WebP Converter</h1>
+      <p class="subtitle">Convertissez et optimisez vos images pour le web — 100% local, rien n'est envoyé.</p>
+    </header>
+
+    <!-- Drop Zone -->
+    <div id="dropZone" class="drop-zone">
+      <input type="file" id="fileInput" multiple accept="image/png,image/jpeg,image/gif,image/bmp,image/tiff,image/svg+xml" hidden>
+      <div class="drop-zone-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p class="drop-zone-title">Glissez vos images ici</p>
+        <p class="drop-zone-hint">ou <button type="button" id="browseBtn" class="browse-link">parcourez vos fichiers</button></p>
+        <span class="label-tag">PNG, JPEG, GIF, BMP, TIFF, SVG</span>
+      </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div id="mainLayout" class="main-layout hidden">
+      <!-- Left Column: Options -->
+      <aside class="options-panel">
+        <h2>Options de conversion</h2>
+
+        <!-- Presets -->
+        <div class="option-group">
+          <div class="option-label">
+            <span class="label-tag">PRÉRÉGLAGES</span>
+            <button class="info-btn" data-tooltip="Choisissez un préréglage pour ajuster automatiquement la qualité. 'Max' conserve le maximum de détails, 'Web' est optimisé pour un chargement rapide.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="presets-grid">
+            <button class="preset-btn" data-quality="100" data-alpha="100">Max qualité</button>
+            <button class="preset-btn active" data-quality="80" data-alpha="80">Équilibré</button>
+            <button class="preset-btn" data-quality="60" data-alpha="50">Web</button>
+            <button class="preset-btn" data-quality="30" data-alpha="30">Agressif</button>
+          </div>
+        </div>
+
+        <!-- Quality Slider -->
+        <div class="option-group">
+          <div class="option-label">
+            <label for="qualitySlider">Qualité WebP</label>
+            <button class="info-btn" data-tooltip="Contrôle la compression de l'image. 100 = qualité maximale (fichier plus lourd), 1 = compression maximale (qualité réduite).">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="qualitySlider" min="1" max="100" value="80" class="slider">
+            <span id="qualityValue" class="slider-value">80</span>
+          </div>
+        </div>
+
+        <!-- Alpha Quality Slider -->
+        <div class="option-group">
+          <div class="option-label">
+            <label for="alphaSlider">Qualité Alpha</label>
+            <button class="info-btn" data-tooltip="Contrôle la qualité du canal de transparence (alpha). Pertinent uniquement pour les images PNG avec transparence.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="alphaSlider" min="0" max="100" value="80" class="slider">
+            <span id="alphaValue" class="slider-value">80</span>
+          </div>
+        </div>
+
+        <!-- Resize Toggle -->
+        <div class="option-group">
+          <div class="option-label">
+            <label>Redimensionnement</label>
+            <button class="info-btn" data-tooltip="Activez pour réduire les dimensions de l'image. Les proportions sont toujours conservées. L'image ne sera jamais agrandie.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="toggle-row">
+            <button id="resizeToggle" class="toggle" role="switch" aria-checked="false">
+              <span class="toggle-knob"></span>
+            </button>
+            <span class="toggle-label">Désactivé</span>
+          </div>
+          <div id="resizeFields" class="resize-fields hidden">
+            <div class="field-group">
+              <label for="maxWidth" class="field-label">Largeur max (px)</label>
+              <input type="number" id="maxWidth" value="1920" min="1" class="input-field">
+            </div>
+            <div class="field-group">
+              <label for="maxHeight" class="field-label">Hauteur max (px)</label>
+              <input type="number" id="maxHeight" value="1080" min="1" class="input-field">
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Column: File List -->
+      <section class="files-panel">
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+          <div class="stat">
+            <span class="stat-label">Images</span>
+            <span id="statCount" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Taille originale</span>
+            <span id="statOriginal" class="stat-value">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Taille WebP</span>
+            <span id="statConverted" class="stat-value">—</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Économisé</span>
+            <span id="statSaved" class="stat-value saved">—</span>
+          </div>
+        </div>
+
+        <!-- File List -->
+        <div id="fileList" class="file-list">
+          <!-- Files will be rendered here -->
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-bar">
+          <button id="clearAllBtn" class="btn btn-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Tout effacer
+          </button>
+          <button id="convertAllBtn" class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            Convertir toutes les images
+          </button>
+          <button id="downloadAllBtn" class="btn btn-secondary hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Tout télécharger
+          </button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div id="previewModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Aperçu</h3>
+        <button id="modalClose" class="modal-close" aria-label="Fermer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="preview-compare">
+          <div class="preview-side">
+            <span class="label-tag">ORIGINAL</span>
+            <div class="preview-img-wrap">
+              <img id="previewOriginal" alt="Image originale">
+            </div>
+            <span id="previewOriginalSize" class="preview-size"></span>
+          </div>
+          <div class="preview-side">
+            <span class="label-tag">WEBP</span>
+            <div class="preview-img-wrap">
+              <img id="previewConverted" alt="Image convertie">
+            </div>
+            <span id="previewConvertedSize" class="preview-size"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div id="tooltip" class="tooltip hidden" role="tooltip"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
