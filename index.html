@@ -7,20 +7,17 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Theme Toggle -->
   <button id="themeToggle" class="theme-toggle" aria-label="Basculer le thème">
     <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
     <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
   </button>
 
   <div class="container">
-    <!-- Header -->
     <header class="header">
       <h1>WebP Converter</h1>
       <p class="subtitle">Convertissez et optimisez vos images pour le web — 100% local, rien n'est envoyé.</p>
     </header>
 
-    <!-- Drop Zone -->
     <div id="dropZone" class="drop-zone">
       <input type="file" id="fileInput" multiple accept="image/png,image/jpeg,image/gif,image/bmp,image/tiff,image/svg+xml" hidden>
       <div class="drop-zone-content">
@@ -31,17 +28,45 @@
       </div>
     </div>
 
-    <!-- Main Layout -->
     <div id="mainLayout" class="main-layout hidden">
-      <!-- Left Column: Options -->
+      <!-- ===== LEFT: OPTIONS PANEL ===== -->
       <aside class="options-panel">
         <h2>Options de conversion</h2>
 
-        <!-- Presets -->
+        <!-- FORMAT DE SORTIE -->
         <div class="option-group">
           <div class="option-label">
+            <span class="label-tag">FORMAT DE SORTIE</span>
+            <button class="info-btn" data-tooltip="WebP : universel et très bien supporté. AVIF : 20–30 % plus léger que WebP pour les photos, mais encodage plus lent. Support détecté automatiquement.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="segmented" id="formatSelector">
+            <button class="seg-btn active" data-value="webp">WebP</button>
+            <button class="seg-btn" data-value="avif" id="avifBtn">AVIF</button>
+          </div>
+          <p id="avifUnsupported" class="option-hint error hidden">AVIF non supporté par ce navigateur.</p>
+        </div>
+
+        <!-- MODE DE COMPRESSION -->
+        <div class="option-group">
+          <div class="option-label">
+            <span class="label-tag">MODE DE COMPRESSION</span>
+            <button class="info-btn" data-tooltip="Lossy (avec perte) : optimal pour les photos, réduit drastiquement la taille. Lossless (sans perte) : indispensable pour logos, illustrations, UI — qualité pixel parfaite, fichier plus lourd.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="segmented" id="compressionModeSelector">
+            <button class="seg-btn active" data-value="lossy">Lossy</button>
+            <button class="seg-btn" data-value="lossless">Lossless</button>
+          </div>
+        </div>
+
+        <!-- PRÉRÉGLAGES (lossy only) -->
+        <div class="option-group" id="presetsGroup">
+          <div class="option-label">
             <span class="label-tag">PRÉRÉGLAGES</span>
-            <button class="info-btn" data-tooltip="Choisissez un préréglage pour ajuster automatiquement la qualité. 'Max' conserve le maximum de détails, 'Web' est optimisé pour un chargement rapide.">
+            <button class="info-btn" data-tooltip="Raccourcis pour régler qualité et canal alpha simultanément. 'Max' conserve le maximum de détails. 'Agressif' compresse au maximum.">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             </button>
           </div>
@@ -53,11 +78,11 @@
           </div>
         </div>
 
-        <!-- Quality Slider -->
-        <div class="option-group">
+        <!-- QUALITÉ (lossy only) -->
+        <div class="option-group" id="qualityGroup">
           <div class="option-label">
             <label for="qualitySlider">Qualité WebP</label>
-            <button class="info-btn" data-tooltip="Contrôle la compression de l'image. 100 = qualité maximale (fichier plus lourd), 1 = compression maximale (qualité réduite).">
+            <button class="info-btn" data-tooltip="Contrôle la compression. 100 = qualité maximale (fichier lourd), 1 = compression maximale (qualité réduite). En mode 'Taille cible', ce slider est ignoré.">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             </button>
           </div>
@@ -65,13 +90,14 @@
             <input type="range" id="qualitySlider" min="1" max="100" value="80" class="slider">
             <span id="qualityValue" class="slider-value">80</span>
           </div>
+          <p id="sizeEstimate" class="option-hint"></p>
         </div>
 
-        <!-- Alpha Quality Slider -->
-        <div class="option-group">
+        <!-- CANAL ALPHA (lossy only) -->
+        <div class="option-group" id="alphaGroup">
           <div class="option-label">
-            <label for="alphaSlider">Qualité Alpha</label>
-            <button class="info-btn" data-tooltip="Contrôle la qualité du canal de transparence (alpha). Pertinent uniquement pour les images PNG avec transparence.">
+            <label for="alphaSlider">Canal Alpha</label>
+            <button class="info-btn" data-tooltip="Influence la qualité du canal de transparence pour les PNG. L'API Canvas encode l'alpha avec la qualité globale — ce slider module leur ratio. Ignoré pour JPEG/BMP (pas de transparence).">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             </button>
           </div>
@@ -81,11 +107,33 @@
           </div>
         </div>
 
-        <!-- Resize Toggle -->
+        <!-- TAILLE CIBLE (lossy only) -->
+        <div class="option-group" id="targetSizeGroup">
+          <div class="option-label">
+            <span class="label-tag">TAILLE CIBLE</span>
+            <button class="info-btn" data-tooltip="Ajuste automatiquement la qualité par bissection binaire pour atteindre cette taille de fichier (±5 %). Converge en ~10 itérations. Override le slider de qualité.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="toggle-row">
+            <button id="targetSizeToggle" class="toggle" role="switch" aria-checked="false">
+              <span class="toggle-knob"></span>
+            </button>
+            <span id="targetSizeLabel" class="toggle-label">Désactivé</span>
+          </div>
+          <div id="targetSizeField" class="hidden" style="margin-top:12px">
+            <div class="input-with-unit">
+              <input type="number" id="targetSizeInput" value="200" min="10" max="50000" class="input-field">
+              <span class="input-unit">Ko</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- REDIMENSIONNEMENT -->
         <div class="option-group">
           <div class="option-label">
             <label>Redimensionnement</label>
-            <button class="info-btn" data-tooltip="Activez pour réduire les dimensions de l'image. Les proportions sont toujours conservées. L'image ne sera jamais agrandie.">
+            <button class="info-btn" data-tooltip="Réduit les dimensions de l'image. Fit : contient dans les limites (jamais élargi). Cover : remplit exactement avec recadrage centré. Stretch : force les dimensions exactes (peut déformer).">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             </button>
           </div>
@@ -93,24 +141,128 @@
             <button id="resizeToggle" class="toggle" role="switch" aria-checked="false">
               <span class="toggle-knob"></span>
             </button>
-            <span class="toggle-label">Désactivé</span>
+            <span id="resizeToggleLabel" class="toggle-label">Désactivé</span>
           </div>
-          <div id="resizeFields" class="resize-fields hidden">
-            <div class="field-group">
-              <label for="maxWidth" class="field-label">Largeur max (px)</label>
-              <input type="number" id="maxWidth" value="1920" min="1" class="input-field">
+          <div id="resizeFields" class="resize-fields-block hidden">
+            <div class="resize-fields">
+              <div class="field-group">
+                <label for="maxWidth" class="field-label">Largeur max (px)</label>
+                <input type="number" id="maxWidth" value="1920" min="1" class="input-field">
+              </div>
+              <div class="field-group">
+                <label for="maxHeight" class="field-label">Hauteur max (px)</label>
+                <input type="number" id="maxHeight" value="1080" min="1" class="input-field">
+              </div>
             </div>
-            <div class="field-group">
-              <label for="maxHeight" class="field-label">Hauteur max (px)</label>
-              <input type="number" id="maxHeight" value="1080" min="1" class="input-field">
+
+            <!-- Resize Mode -->
+            <div class="field-group" style="margin-top:12px">
+              <div class="field-label-row">
+                <span class="field-label">Mode</span>
+                <button class="info-btn" data-tooltip="Fit : proportions conservées, jamais agrandi. Cover : remplit exactement le cadre, recadrage centré. Stretch : force les dimensions exactes, peut déformer l'image.">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </button>
+              </div>
+              <div class="segmented" id="resizeModeSelector">
+                <button class="seg-btn active" data-value="fit">Fit</button>
+                <button class="seg-btn" data-value="cover">Cover</button>
+                <button class="seg-btn" data-value="stretch">Stretch</button>
+              </div>
             </div>
+
+            <!-- Interpolation -->
+            <div class="field-group" style="margin-top:12px">
+              <div class="field-label-row">
+                <span class="field-label">Interpolation</span>
+                <button class="info-btn" data-tooltip="Algorithme de rééchantillonnage au redimensionnement. Pixel : nearest-neighbor (pixel art). Standard : interpolation basique. Précis : bicubique haute qualité — recommandé pour les photos.">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </button>
+              </div>
+              <div class="segmented" id="interpolationSelector">
+                <button class="seg-btn" data-value="low">Pixel</button>
+                <button class="seg-btn" data-value="medium">Standard</button>
+                <button class="seg-btn active" data-value="high">Précis</button>
+              </div>
+            </div>
+
+            <!-- Quick Resolutions -->
+            <div class="field-group" style="margin-top:12px">
+              <span class="field-label">Résolutions rapides</span>
+              <div class="res-presets">
+                <button class="res-btn" data-w="300" data-h="300">300px</button>
+                <button class="res-btn" data-w="800" data-h="600">800×600</button>
+                <button class="res-btn" data-w="1920" data-h="1080">FHD</button>
+                <button class="res-btn" data-w="3840" data-h="2160">4K</button>
+                <button class="res-btn" data-w="1200" data-h="630">Social</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- POST-TRAITEMENT -->
+        <div class="option-group">
+          <div class="option-label">
+            <span class="label-tag">POST-TRAITEMENT</span>
+          </div>
+
+          <!-- Sharpening -->
+          <div class="option-label" style="margin-top:0">
+            <label for="sharpeningSlider">Netteté</label>
+            <button class="info-btn" data-tooltip="Filtre d'accentuation (convolution 3×3) appliqué après le redimensionnement pour compenser la perte de netteté. 0 = désactivé. Attention : opération intensive sur les très grandes images.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="sharpeningSlider" min="0" max="100" value="0" class="slider">
+            <span id="sharpeningValue" class="slider-value">0</span>
+          </div>
+
+          <!-- Fill Transparency -->
+          <div class="option-label" style="margin-top:16px">
+            <label>Remplir la transparence</label>
+            <button class="info-btn" data-tooltip="Remplace le canal alpha par une couleur unie avant l'encodage. Utile pour les emails HTML ou les environnements qui n'affichent pas correctement la transparence WebP.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="fill-row">
+            <button id="fillToggle" class="toggle" role="switch" aria-checked="false">
+              <span class="toggle-knob"></span>
+            </button>
+            <span id="fillToggleLabel" class="toggle-label">Désactivé</span>
+            <input type="color" id="fillColor" value="#ffffff" class="color-input hidden" title="Couleur de fond">
+          </div>
+
+          <!-- EXIF Section -->
+          <div class="option-label" style="margin-top:16px">
+            <label>Supprimer les données EXIF</label>
+            <button class="info-btn" data-tooltip="Le canvas supprime naturellement toutes les métadonnées (EXIF, ICC, XMP) lors de l'encodage WebP/AVIF. Activé = fichier output allégé. Désactivé = les données EXIF du JPEG source sont réinjectées dans le container WebP (taille légèrement plus grande, métadonnées préservées).">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="toggle-row">
+            <button id="stripExifToggle" class="toggle" role="switch" aria-checked="true">
+              <span class="toggle-knob"></span>
+            </button>
+            <span id="stripExifLabel" class="toggle-label">Activé</span>
+          </div>
+
+          <div class="option-label" style="margin-top:12px" id="exifOrientRow">
+            <label>Correction orientation EXIF</label>
+            <button class="info-btn" data-tooltip="Les photos prises avec un smartphone ont souvent une orientation EXIF incorrecte. Cette option applique la rotation correcte avant la conversion.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="toggle-row" id="exifOrientToggleRow">
+            <button id="exifToggle" class="toggle" role="switch" aria-checked="true">
+              <span class="toggle-knob"></span>
+            </button>
+            <span id="exifToggleLabel" class="toggle-label">Activé</span>
           </div>
         </div>
       </aside>
 
-      <!-- Right Column: File List -->
+      <!-- ===== RIGHT: FILES PANEL ===== -->
       <section class="files-panel">
-        <!-- Stats Bar -->
         <div class="stats-bar">
           <div class="stat">
             <span class="stat-label">Images</span>
@@ -121,7 +273,7 @@
             <span id="statOriginal" class="stat-value">—</span>
           </div>
           <div class="stat">
-            <span class="stat-label">Taille WebP</span>
+            <span class="stat-label">Taille convertie</span>
             <span id="statConverted" class="stat-value">—</span>
           </div>
           <div class="stat">
@@ -130,24 +282,20 @@
           </div>
         </div>
 
-        <!-- File List -->
-        <div id="fileList" class="file-list">
-          <!-- Files will be rendered here -->
-        </div>
+        <div id="fileList" class="file-list"></div>
 
-        <!-- Actions -->
         <div class="actions-bar">
           <button id="clearAllBtn" class="btn btn-secondary">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            Tout effacer
+            Effacer
           </button>
           <button id="convertAllBtn" class="btn btn-primary">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-            Convertir toutes les images
+            Convertir tout
           </button>
-          <button id="downloadAllBtn" class="btn btn-secondary hidden">
+          <button id="downloadZipBtn" class="btn btn-secondary hidden">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Tout télécharger
+            ZIP
           </button>
         </div>
       </section>
@@ -168,16 +316,12 @@
         <div class="preview-compare">
           <div class="preview-side">
             <span class="label-tag">ORIGINAL</span>
-            <div class="preview-img-wrap">
-              <img id="previewOriginal" alt="Image originale">
-            </div>
+            <div class="preview-img-wrap"><img id="previewOriginal" alt="Original"></div>
             <span id="previewOriginalSize" class="preview-size"></span>
           </div>
           <div class="preview-side">
-            <span class="label-tag">WEBP</span>
-            <div class="preview-img-wrap">
-              <img id="previewConverted" alt="Image convertie">
-            </div>
+            <span class="label-tag" id="previewConvertedLabel">WEBP</span>
+            <div class="preview-img-wrap"><img id="previewConverted" alt="Converti"></div>
             <span id="previewConvertedSize" class="preview-size"></span>
           </div>
         </div>
@@ -185,7 +329,6 @@
     </div>
   </div>
 
-  <!-- Tooltip -->
   <div id="tooltip" class="tooltip hidden" role="tooltip"></div>
 
   <script src="app.js"></script>
