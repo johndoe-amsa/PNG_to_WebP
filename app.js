@@ -32,6 +32,7 @@
     fillTransparency: false,
     fillColor: '#ffffff',
     exifCorrection: true,
+    stripExif: true,
   };
 
   let idCounter = 0;
@@ -81,13 +82,16 @@
   const fillToggle = $('#fillToggle');
   const fillToggleLabel = $('#fillToggleLabel');
   const fillColor = $('#fillColor');
+  const stripExifToggle = $('#stripExifToggle');
+  const stripExifLabel = $('#stripExifLabel');
   const exifToggle = $('#exifToggle');
   const exifToggleLabel = $('#exifToggleLabel');
+  const exifOrientRow = $('#exifOrientRow');
+  const exifOrientToggleRow = $('#exifOrientToggleRow');
 
   const fileList = $('#fileList');
   const convertAllBtn = $('#convertAllBtn');
   const clearAllBtn = $('#clearAllBtn');
-  const reconvertAllBtn = $('#reconvertAllBtn');
   const downloadZipBtn = $('#downloadZipBtn');
 
   const statCount = $('#statCount');
@@ -350,6 +354,18 @@
     state.fillColor = fillColor.value;
   });
 
+  stripExifToggle.addEventListener('click', () => {
+    const on = stripExifToggle.getAttribute('aria-checked') === 'true';
+    const next = !on;
+    stripExifToggle.setAttribute('aria-checked', String(next));
+    stripExifLabel.textContent = next ? 'Activé' : 'Désactivé';
+    state.stripExif = next;
+    // Hide/show orientation toggle: only relevant when EXIF is preserved (strip = OFF)
+    // But orientation correction always applies regardless, so keep visible
+    exifOrientRow.classList.toggle('hidden', false);
+    exifOrientToggleRow.classList.toggle('hidden', false);
+  });
+
   exifToggle.addEventListener('click', () => {
     const on = exifToggle.getAttribute('aria-checked') === 'true';
     const next = !on;
@@ -398,10 +414,15 @@
       if (!validTypes.includes(file.type)) continue;
 
       let exifOrientation = 1;
-      if (state.exifCorrection && (file.type === 'image/jpeg')) {
+      let exifBytes = null;
+      let exifSize = 0;
+      if (file.type === 'image/jpeg') {
         try {
           const buf = await file.arrayBuffer();
-          exifOrientation = getExifOrientation(buf);
+          const exifData = readExifData(buf);
+          exifOrientation = exifData.orientation;
+          exifBytes = exifData.rawBytes;
+          exifSize = exifData.size;
         } catch (_) { /* ignore */ }
       }
 
@@ -417,6 +438,8 @@
         convertedSize: null,
         status: 'pending',
         exifOrientation,
+        exifBytes,
+        exifSize,
         overrides: null,
         overrideOpen: false,
       });
@@ -488,7 +511,6 @@
     // Show/hide action buttons
     const hasConverted = state.files.some((x) => x.status === 'done');
     downloadZipBtn.classList.toggle('hidden', !hasConverted);
-    reconvertAllBtn.classList.toggle('hidden', !hasConverted);
   }
 
   function buildConvertedMeta(f) {
@@ -498,9 +520,13 @@
       const badgeClass = isSmaller ? 'green' : 'red';
       const sign = isSmaller ? '−' : '+';
       const ext = f.overrides?.outputFormat || state.outputFormat;
+      const exifBadge = (state.stripExif && f.exifSize > 0)
+        ? `<span class="file-badge green" title="Données EXIF supprimées">−EXIF ${formatSize(f.exifSize)}</span>`
+        : '';
       return `<span class="file-arrow">→</span>
               <span>${formatSize(f.convertedSize)} ${ext.toUpperCase()}</span>
-              <span class="file-badge ${badgeClass}">${sign}${Math.abs(reduction)}%</span>`;
+              <span class="file-badge ${badgeClass}">${sign}${Math.abs(reduction)}%</span>
+              ${exifBadge}`;
     }
     if (f.status === 'converting') {
       return '<span class="file-badge orange">Conversion…</span>';
@@ -618,18 +644,6 @@
     updateSizeEstimate();
   });
 
-  reconvertAllBtn.addEventListener('click', () => {
-    state.files.forEach((f) => {
-      if (f.convertedUrl) URL.revokeObjectURL(f.convertedUrl);
-      f.convertedBlob = null;
-      f.convertedUrl = null;
-      f.convertedSize = null;
-      f.status = 'pending';
-    });
-    renderFileList();
-    updateStats();
-  });
-
   // ============================================
   // DOWNLOAD
   // ============================================
@@ -710,12 +724,22 @@
   convertAllBtn.addEventListener('click', convertAll);
 
   async function convertAll() {
-    const pending = state.files.filter((f) => f.status === 'pending');
-    if (pending.length === 0) return;
+    if (state.files.length === 0) return;
+
+    // Reset already-converted files so clicking the button again re-converts everything
+    state.files.forEach((f) => {
+      if (f.status === 'done' || f.status === 'error') {
+        if (f.convertedUrl) URL.revokeObjectURL(f.convertedUrl);
+        f.convertedBlob = null;
+        f.convertedUrl = null;
+        f.convertedSize = null;
+        f.status = 'pending';
+      }
+    });
 
     convertAllBtn.disabled = true;
 
-    for (const f of pending) {
+    for (const f of state.files) {
       f.status = 'converting';
       renderFileList();
       try {
@@ -757,6 +781,7 @@
       fillTransparency: state.fillTransparency,
       fillColor: state.fillColor,
       exifCorrection: state.exifCorrection,
+      stripExif: state.stripExif,
     };
   }
 
@@ -867,6 +892,11 @@
 
           if (!blob) throw new Error('La conversion a retourné null');
 
+          // Inject EXIF back into WebP container if strip is disabled and source had EXIF
+          if (!settings.stripExif && f.exifBytes && f.exifBytes.length > 0) {
+            blob = await injectExifIntoWebP(blob, f.exifBytes);
+          }
+
           if (f.convertedUrl) URL.revokeObjectURL(f.convertedUrl);
           f.convertedBlob = blob;
           f.convertedUrl = URL.createObjectURL(blob);
@@ -927,13 +957,14 @@
   }
 
   // ============================================
-  // EXIF ORIENTATION PARSING
+  // EXIF PARSING — reads orientation + raw EXIF bytes
   // ============================================
 
-  function getExifOrientation(buffer) {
+  function readExifData(buffer) {
+    const result = { orientation: 1, rawBytes: null, size: 0 };
     try {
       const view = new DataView(buffer);
-      if (view.getUint16(0, false) !== 0xFFD8) return 1;
+      if (view.getUint16(0, false) !== 0xFFD8) return result;
 
       let offset = 2;
       while (offset < view.byteLength - 4) {
@@ -941,7 +972,15 @@
         offset += 2;
 
         if (marker === 0xFFE1) {
+          const segLen = view.getUint16(offset, false); // includes the 2-byte length field itself
+          // Check for "Exif\0\0" header
           if (view.getUint32(offset + 2, false) === 0x45786966) {
+            // Store raw APP1 payload (after the 2-byte length field)
+            const payloadStart = offset + 2;
+            const payloadLen = segLen - 2;
+            result.rawBytes = new Uint8Array(buffer, payloadStart, payloadLen);
+            result.size = segLen + 2; // marker (2) + length (2) + data (segLen-2)
+
             const tiffBase = offset + 8;
             const littleEndian = view.getUint16(tiffBase, false) === 0x4949;
             const firstIFD = view.getUint32(tiffBase + 4, littleEndian);
@@ -950,11 +989,12 @@
             for (let i = 0; i < entries; i++) {
               const entryOffset = tiffBase + firstIFD + 2 + i * 12;
               if (view.getUint16(entryOffset, littleEndian) === 0x0112) {
-                return view.getUint16(entryOffset + 8, littleEndian);
+                result.orientation = view.getUint16(entryOffset + 8, littleEndian);
+                break;
               }
             }
           }
-          return 1;
+          return result;
         }
 
         if (marker === 0xFFDA) break;
@@ -962,7 +1002,121 @@
         offset += segLen;
       }
     } catch (_) { /* ignore */ }
-    return 1;
+    return result;
+  }
+
+  // ============================================
+  // WEBP EXIF INJECTION
+  // Inserts EXIF chunk into WebP Extended (VP8X) container
+  // ============================================
+
+  async function injectExifIntoWebP(webpBlob, exifBytes) {
+    try {
+      const buf = await webpBlob.arrayBuffer();
+      const view = new DataView(buf);
+
+      // Validate RIFF/WEBP header
+      if (view.getUint32(0, false) !== 0x52494646) return webpBlob; // 'RIFF'
+      if (view.getUint32(8, false) !== 0x57454250) return webpBlob; // 'WEBP'
+
+      const chunkFourCC = view.getUint32(12, false);
+      const isLossy    = chunkFourCC === 0x56503820; // 'VP8 '
+      const isLossless = chunkFourCC === 0x5650384C; // 'VP8L'
+      const isExtended = chunkFourCC === 0x56503858; // 'VP8X'
+
+      if (!isLossy && !isLossless && !isExtended) return webpBlob;
+
+      // Pad exifBytes to even length (RIFF chunks must be word-aligned)
+      const exifPadded = (exifBytes.length % 2 !== 0)
+        ? new Uint8Array([...exifBytes, 0])
+        : exifBytes;
+
+      // Build EXIF chunk: 'EXIF' + size (LE uint32) + data
+      const exifChunk = new Uint8Array(8 + exifPadded.length);
+      const ecv = new DataView(exifChunk.buffer);
+      ecv.setUint32(0, 0x45584946, false); // 'EXIF'
+      ecv.setUint32(4, exifBytes.length, true);
+      exifChunk.set(exifPadded, 8);
+
+      let vp8Data, vp8FourCC, canvasW, canvasH;
+
+      if (isExtended) {
+        // Already VP8X — check if EXIF flag already set; just append if not
+        const vp8xFlags = view.getUint8(20);
+        // We'll rebuild anyway to ensure correct ordering
+        const vp8xData = new Uint8Array(buf, 20, 10);
+        vp8Data = new Uint8Array(buf, 12); // from VP8X chunk onward, we'll rebuild below
+
+        // Find the VP8 or VP8L chunk within the extended container
+        let chunkOffset = 12;
+        while (chunkOffset + 8 <= buf.byteLength) {
+          const cc = view.getUint32(chunkOffset, false);
+          const cs = view.getUint32(chunkOffset + 4, true);
+          if (cc === 0x56503820 || cc === 0x5650384C) {
+            vp8FourCC = cc;
+            vp8Data = new Uint8Array(buf, chunkOffset, 8 + cs + (cs % 2));
+            canvasW = (view.getUint32(24, true) & 0xFFFFFF) + 1;
+            canvasH = (view.getUint32(27, true) & 0xFFFFFF) + 1;
+            break;
+          }
+          chunkOffset += 8 + cs + (cs % 2);
+        }
+      } else {
+        vp8FourCC = chunkFourCC;
+        const vp8Size = view.getUint32(16, true);
+        vp8Data = new Uint8Array(buf, 12, 8 + vp8Size + (vp8Size % 2));
+
+        // Extract canvas dimensions from VP8 bitstream
+        if (isLossy) {
+          // VP8 frame tag: skip 3 bytes, check 0x9d012a signature
+          if (view.getUint16(23, false) === 0x9D01 && view.getUint8(25) === 0x2A) {
+            canvasW = (view.getUint16(26, true) & 0x3FFF);
+            canvasH = (view.getUint16(28, true) & 0x3FFF);
+          } else {
+            canvasW = 0; canvasH = 0;
+          }
+        } else {
+          // VP8L: signature byte 0x2F, then 28 bits width-1, 28 bits height-1
+          // offset 21 = after RIFF(4)+size(4)+WEBP(4)+VP8L(4)+size(4)+sig(1)
+          const bits = view.getUint32(21, true);
+          canvasW = (bits & 0x3FFF) + 1;
+          canvasH = ((bits >>> 14) & 0x3FFF) + 1;
+        }
+      }
+
+      if (!vp8Data || !canvasW || !canvasH) return webpBlob;
+
+      // Build VP8X chunk (10 bytes of data)
+      const vp8xChunk = new Uint8Array(18); // 4+4+10
+      const vxv = new DataView(vp8xChunk.buffer);
+      vxv.setUint32(0, 0x56503858, false); // 'VP8X'
+      vxv.setUint32(4, 10, true);          // chunk size = 10
+      // flags: bit 3 = EXIF present
+      vxv.setUint8(8, 0x08);
+      // canvas width - 1 (24-bit LE)
+      vxv.setUint8(12, (canvasW - 1) & 0xFF);
+      vxv.setUint8(13, ((canvasW - 1) >> 8) & 0xFF);
+      vxv.setUint8(14, ((canvasW - 1) >> 16) & 0xFF);
+      // canvas height - 1 (24-bit LE)
+      vxv.setUint8(15, (canvasH - 1) & 0xFF);
+      vxv.setUint8(16, ((canvasH - 1) >> 8) & 0xFF);
+      vxv.setUint8(17, ((canvasH - 1) >> 16) & 0xFF);
+
+      // Assemble: RIFF header (12) + VP8X (18) + VP8/VP8L chunk + EXIF chunk
+      const totalSize = 4 + vp8xChunk.length + vp8Data.length + exifChunk.length;
+      const out = new Uint8Array(4 + 4 + totalSize);
+      const ov = new DataView(out.buffer);
+      ov.setUint32(0, 0x52494646, false); // 'RIFF'
+      ov.setUint32(4, totalSize, true);
+      ov.setUint32(8, 0x57454250, false); // 'WEBP'
+      out.set(vp8xChunk, 12);
+      out.set(vp8Data, 12 + vp8xChunk.length);
+      out.set(exifChunk, 12 + vp8xChunk.length + vp8Data.length);
+
+      return new Blob([out], { type: 'image/webp' });
+    } catch (_) {
+      return webpBlob; // fallback: return original blob unchanged
+    }
   }
 
   function applyExifTransform(ctx, orientation, imgW, imgH) {

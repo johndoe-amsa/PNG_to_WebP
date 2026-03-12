@@ -232,14 +232,27 @@
             <input type="color" id="fillColor" value="#ffffff" class="color-input hidden" title="Couleur de fond">
           </div>
 
-          <!-- EXIF Auto-correction -->
+          <!-- EXIF Section -->
           <div class="option-label" style="margin-top:16px">
-            <label>Correction orientation EXIF</label>
-            <button class="info-btn" data-tooltip="Les photos prises avec un smartphone ont souvent une orientation EXIF incorrecte. Cette option lit les métadonnées du fichier JPEG et applique la rotation/flip automatiquement avant la conversion.">
+            <label>Supprimer les données EXIF</label>
+            <button class="info-btn" data-tooltip="Le canvas supprime naturellement toutes les métadonnées (EXIF, ICC, XMP) lors de l'encodage WebP/AVIF. Activé = fichier output allégé. Désactivé = les données EXIF du JPEG source sont réinjectées dans le container WebP (taille légèrement plus grande, métadonnées préservées).">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             </button>
           </div>
           <div class="toggle-row">
+            <button id="stripExifToggle" class="toggle" role="switch" aria-checked="true">
+              <span class="toggle-knob"></span>
+            </button>
+            <span id="stripExifLabel" class="toggle-label">Activé</span>
+          </div>
+
+          <div class="option-label" style="margin-top:12px" id="exifOrientRow">
+            <label>Correction orientation EXIF</label>
+            <button class="info-btn" data-tooltip="Les photos prises avec un smartphone ont souvent une orientation EXIF incorrecte. Cette option applique la rotation correcte avant la conversion.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="toggle-row" id="exifOrientToggleRow">
             <button id="exifToggle" class="toggle" role="switch" aria-checked="true">
               <span class="toggle-knob"></span>
             </button>
@@ -275,10 +288,6 @@
           <button id="clearAllBtn" class="btn btn-secondary">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             Effacer
-          </button>
-          <button id="reconvertAllBtn" class="btn btn-secondary hidden">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.3"/></svg>
-            Reconvertir
           </button>
           <button id="convertAllBtn" class="btn btn-primary">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
