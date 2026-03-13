@@ -1354,7 +1354,8 @@
   function updateSidebarMaxHeight() {
     if (!optionsPanel || optionsPanel.offsetParent === null) return;
     const top = optionsPanel.getBoundingClientRect().top;
-    const maxH = window.innerHeight - top - 24;
+    const containerPb = parseFloat(getComputedStyle(optionsPanel.closest('.container')).paddingBottom) || 0;
+    const maxH = window.innerHeight - top - containerPb;
     if (maxH > 0) {
       optionsPanel.style.setProperty('--sidebar-max-height', maxH + 'px');
     }
