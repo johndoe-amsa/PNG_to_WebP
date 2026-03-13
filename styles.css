@@ -40,6 +40,11 @@
   box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
   background-color: var(--bg-primary);
@@ -80,7 +85,11 @@ body {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 48px 24px 64px;
+  padding: 48px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {
@@ -188,10 +197,24 @@ body {
   grid-template-columns: 340px 1fr;
   gap: 24px;
   align-items: start;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 900px) {
-  .main-layout { grid-template-columns: 1fr; }
+  html, body {
+    height: auto;
+    overflow: auto;
+  }
+  .container {
+    height: auto;
+    overflow: visible;
+  }
+  .main-layout {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
 }
 
 /* --- Options Panel --- */
@@ -199,9 +222,6 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 24px;
-  position: sticky;
-  top: 24px;
-  max-height: calc(100vh - 48px);
   overflow-y: auto;
 }
 
@@ -606,7 +626,13 @@ body {
 }
 
 /* --- Files Panel --- */
-.files-panel { min-width: 0; }
+.files-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
 
 /* --- Stats Bar --- */
 .stats-bar {
