@@ -448,6 +448,7 @@
     if (newEntries.length === 0) return;
     state.files.push(...newEntries);
     mainLayout.classList.remove('hidden');
+    updateSidebarMaxHeight();
     renderFileList();
     updateStats();
     updateSizeEstimate();
@@ -1343,6 +1344,23 @@
     }
     return (crc ^ 0xFFFFFFFF) >>> 0;
   }
+
+  // ============================================
+  // SIDEBAR HEIGHT
+  // ============================================
+
+  const optionsPanel = $('.options-panel');
+
+  function updateSidebarMaxHeight() {
+    if (!optionsPanel || optionsPanel.offsetParent === null) return;
+    const top = optionsPanel.getBoundingClientRect().top;
+    const maxH = window.innerHeight - top - 24;
+    if (maxH > 0) {
+      optionsPanel.style.setProperty('--sidebar-max-height', maxH + 'px');
+    }
+  }
+
+  window.addEventListener('resize', updateSidebarMaxHeight);
 
   // ============================================
   // UTILITIES
