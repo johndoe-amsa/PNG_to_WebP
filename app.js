@@ -806,7 +806,7 @@
             const tmpCanvas = document.createElement('canvas');
             tmpCanvas.width = orientW;
             tmpCanvas.height = orientH;
-            const tmpCtx = tmpCanvas.getContext('2d');
+            const tmpCtx = tmpCanvas.getContext('2d', { colorSpace: 'srgb' });
             applyExifTransform(tmpCtx, orientation, img.naturalWidth, img.naturalHeight);
             tmpCtx.drawImage(img, 0, 0);
             source = tmpCanvas;
@@ -847,11 +847,46 @@
             }
           }
 
-          // --- Pass 2: Final canvas ---
+          // --- Pass 2: Multi-step downscale for better quality ---
+          // Apply crop first if needed, then downscale in halving steps
+          let resizeSrc = source;
+          let curW = cropW;
+          let curH = cropH;
+
+          // If cropping is needed, draw cropped region to intermediate canvas
+          if (cropX !== 0 || cropY !== 0 || cropW !== srcW || cropH !== srcH) {
+            const cropCanvas = document.createElement('canvas');
+            cropCanvas.width = cropW;
+            cropCanvas.height = cropH;
+            const cropCtx = cropCanvas.getContext('2d', { colorSpace: 'srgb' });
+            cropCtx.drawImage(source, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+            resizeSrc = cropCanvas;
+          }
+
+          // Multi-step halving: reduce by 50% per step until within 2× of target
+          while (curW > dstW * 2 || curH > dstH * 2) {
+            const stepW = Math.round(curW / 2);
+            const stepH = Math.round(curH / 2);
+            const stepCanvas = document.createElement('canvas');
+            stepCanvas.width = stepW;
+            stepCanvas.height = stepH;
+            const stepCtx = stepCanvas.getContext('2d', { colorSpace: 'srgb' });
+            stepCtx.imageSmoothingEnabled = true;
+            stepCtx.imageSmoothingQuality = 'high';
+            stepCtx.drawImage(resizeSrc, 0, 0, curW, curH, 0, 0, stepW, stepH);
+            resizeSrc = stepCanvas;
+            curW = stepW;
+            curH = stepH;
+          }
+
+          // --- Final canvas ---
           const canvas = document.createElement('canvas');
           canvas.width = dstW;
           canvas.height = dstH;
-          const ctx = canvas.getContext('2d');
+          const ctx = canvas.getContext('2d', {
+            willReadFrequently: settings.sharpening > 0,
+            colorSpace: 'srgb',
+          });
 
           // Fill transparency background
           if (settings.fillTransparency) {
@@ -865,7 +900,7 @@
             ctx.imageSmoothingQuality = settings.interpolation;
           }
 
-          ctx.drawImage(source, cropX, cropY, cropW, cropH, 0, 0, dstW, dstH);
+          ctx.drawImage(resizeSrc, 0, 0, curW, curH, 0, 0, dstW, dstH);
 
           // Sharpening (applied after resize if sharpening > 0)
           if (settings.sharpening > 0) {
@@ -1135,47 +1170,75 @@
   }
 
   // ============================================
-  // SHARPENING (Unsharp Mask via 3×3 Convolution)
+  // SHARPENING (Unsharp Mask via 5×5 Convolution)
   // ============================================
 
   function applySharpening(ctx, w, h, amount) {
-    if (amount <= 0 || w <= 2 || h <= 2) return;
+    if (amount <= 0 || w <= 4 || h <= 4) return;
     const imageData = ctx.getImageData(0, 0, w, h);
     const src = imageData.data;
     const dst = new Uint8ClampedArray(src.length);
-    const a = amount / 200; // scale 0-0.5
 
-    // Kernel: center-weighted sharpen
-    // [0, -a, 0]
-    // [-a, 1+4a, -a]
-    // [0, -a, 0]
+    // Copy all source pixels first (handles edges + alpha)
+    dst.set(src);
 
-    for (let y = 1; y < h - 1; y++) {
-      for (let x = 1; x < w - 1; x++) {
+    const a = amount / 100; // scale 0-1.0
+    const threshold = 4; // minimum delta to apply sharpening (avoids noise amplification)
+
+    // 5×5 Unsharp mask kernel (Gaussian-weighted neighbors)
+    // Approximates a radius-2 unsharp mask for better edge reconstruction
+    //
+    //  [  0,  -b,  -b,  -b,   0 ]
+    //  [ -b,  -c,  -d,  -c,  -b ]
+    //  [ -b,  -d, ctr,  -d,  -b ]
+    //  [ -b,  -c,  -d,  -c,  -b ]
+    //  [  0,  -b,  -b,  -b,   0 ]
+    //
+    // Where: b = a/12, c = a/6, d = a/4, ctr = 1 + sum(weights)
+    const b = a / 12;
+    const c = a / 6;
+    const d = a / 4;
+    const center = 1 + 8 * b + 4 * c + 4 * d; // = 1 + 8*(a/12) + 4*(a/6) + 4*(a/4) = 1 + 2a/3 + 2a/3 + a = 1 + 7a/3
+
+    for (let y = 2; y < h - 2; y++) {
+      for (let x = 2; x < w - 2; x++) {
         const idx = (y * w + x) * 4;
-        for (let c = 0; c < 3; c++) {
-          const v =
-            src[idx + c] * (1 + 4 * a)
-            - src[((y - 1) * w + x) * 4 + c] * a
-            - src[((y + 1) * w + x) * 4 + c] * a
-            - src[(y * w + (x - 1)) * 4 + c] * a
-            - src[(y * w + (x + 1)) * 4 + c] * a;
-          dst[idx + c] = Math.min(255, Math.max(0, v));
-        }
-        dst[idx + 3] = src[idx + 3]; // preserve alpha
-      }
-    }
+        for (let ch = 0; ch < 3; ch++) {
+          const orig = src[idx + ch];
 
-    // Copy edge pixels unchanged
-    for (let x = 0; x < w; x++) {
-      const t = x * 4;
-      const b = ((h - 1) * w + x) * 4;
-      for (let c = 0; c < 4; c++) { dst[t + c] = src[t + c]; dst[b + c] = src[b + c]; }
-    }
-    for (let y = 0; y < h; y++) {
-      const l = y * w * 4;
-      const r = (y * w + (w - 1)) * 4;
-      for (let c = 0; c < 4; c++) { dst[l + c] = src[l + c]; dst[r + c] = src[r + c]; }
+          const v =
+            orig * center
+            // Ring 1 (distance 1): cardinal neighbors weight d, diagonal neighbors weight c
+            - src[((y - 1) * w + x) * 4 + ch] * d
+            - src[((y + 1) * w + x) * 4 + ch] * d
+            - src[(y * w + (x - 1)) * 4 + ch] * d
+            - src[(y * w + (x + 1)) * 4 + ch] * d
+            - src[((y - 1) * w + (x - 1)) * 4 + ch] * c
+            - src[((y - 1) * w + (x + 1)) * 4 + ch] * c
+            - src[((y + 1) * w + (x - 1)) * 4 + ch] * c
+            - src[((y + 1) * w + (x + 1)) * 4 + ch] * c
+            // Ring 2 (distance 2): cardinal weight b, semi-diagonal weight b
+            - src[((y - 2) * w + x) * 4 + ch] * b
+            - src[((y + 2) * w + x) * 4 + ch] * b
+            - src[(y * w + (x - 2)) * 4 + ch] * b
+            - src[(y * w + (x + 2)) * 4 + ch] * b
+            - src[((y - 2) * w + (x - 1)) * 4 + ch] * b
+            - src[((y - 2) * w + (x + 1)) * 4 + ch] * b
+            - src[((y + 2) * w + (x - 1)) * 4 + ch] * b
+            - src[((y + 2) * w + (x + 1)) * 4 + ch] * b
+            - src[((y - 1) * w + (x - 2)) * 4 + ch] * b
+            - src[((y - 1) * w + (x + 2)) * 4 + ch] * b
+            - src[((y + 1) * w + (x - 2)) * 4 + ch] * b
+            - src[((y + 1) * w + (x + 2)) * 4 + ch] * b;
+
+          const rounded = Math.round(v);
+          // Threshold: only apply if the sharpened delta is significant enough
+          if (Math.abs(rounded - orig) >= threshold) {
+            dst[idx + ch] = Math.min(255, Math.max(0, rounded));
+          }
+          // Otherwise dst keeps original value (already set by dst.set(src))
+        }
+      }
     }
 
     ctx.putImageData(new ImageData(dst, w, h), 0, 0);
