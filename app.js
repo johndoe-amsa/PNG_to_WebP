@@ -895,19 +895,30 @@
           }
 
           // Multi-step halving: reduce by 50% per step until within 2× of target
+          let didHalve = false;
           while (curW > dstW * 2 || curH > dstH * 2) {
             const stepW = Math.round(curW / 2);
             const stepH = Math.round(curH / 2);
             const stepCanvas = document.createElement('canvas');
             stepCanvas.width = stepW;
             stepCanvas.height = stepH;
-            const stepCtx = stepCanvas.getContext('2d', { colorSpace: 'srgb' });
+            const stepCtx = stepCanvas.getContext('2d', {
+              colorSpace: 'srgb',
+              willReadFrequently: settings.sharpening > 0,
+            });
             stepCtx.imageSmoothingEnabled = true;
             stepCtx.imageSmoothingQuality = 'high';
             stepCtx.drawImage(resizeSrc, 0, 0, curW, curH, 0, 0, stepW, stepH);
             resizeSrc = stepCanvas;
             curW = stepW;
             curH = stepH;
+            didHalve = true;
+          }
+
+          // Sharpening at intermediate resolution (~2× target) — details are sharpened
+          // before the final downscale so they survive the last reduction naturally
+          if (settings.sharpening > 0 && didHalve) {
+            applySharpening(resizeSrc.getContext('2d'), curW, curH, settings.sharpening);
           }
 
           // --- Final canvas ---
@@ -915,7 +926,7 @@
           canvas.width = dstW;
           canvas.height = dstH;
           const ctx = canvas.getContext('2d', {
-            willReadFrequently: settings.sharpening > 0,
+            willReadFrequently: settings.sharpening > 0 && !didHalve,
             colorSpace: 'srgb',
           });
 
@@ -941,8 +952,9 @@
           ctx.drawImage(resizeSrc, 0, 0, curW, curH, 0, 0, dstW, dstH);
           if (cssFilters.length) ctx.filter = 'none';
 
-          // Sharpening (applied after resize if sharpening > 0)
-          if (settings.sharpening > 0) {
+          // Sharpening on final canvas only when no halving occurred (no resize, or image
+          // already within 2× of target — intermediate sharpening wasn't possible)
+          if (settings.sharpening > 0 && !didHalve) {
             applySharpening(ctx, dstW, dstH, settings.sharpening);
           }
 
