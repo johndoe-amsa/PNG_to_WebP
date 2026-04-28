@@ -16,8 +16,8 @@
     outputFormat: 'webp',
     compressionMode: 'lossy',
     // Quality
-    quality: 80,
-    alphaQuality: 80,
+    quality: 85,
+    alphaQuality: 100,
     // Target size
     targetSizeEnabled: false,
     targetSizeKb: 200,
@@ -29,6 +29,9 @@
     interpolation: 'high',
     // Post-processing
     sharpening: 0,
+    brightness: 0,
+    contrast: 0,
+    grayscale: false,
     fillTransparency: false,
     fillColor: '#ffffff',
     exifCorrection: true,
@@ -79,6 +82,12 @@
 
   const sharpeningSlider = $('#sharpeningSlider');
   const sharpeningValue = $('#sharpeningValue');
+  const brightnessSlider = $('#brightnessSlider');
+  const brightnessValue = $('#brightnessValue');
+  const contrastSlider = $('#contrastSlider');
+  const contrastValue = $('#contrastValue');
+  const grayscaleToggle = $('#grayscaleToggle');
+  const grayscaleLabel = $('#grayscaleLabel');
   const fillToggle = $('#fillToggle');
   const fillToggleLabel = $('#fillToggleLabel');
   const fillColor = $('#fillColor');
@@ -339,6 +348,24 @@
   sharpeningSlider.addEventListener('input', () => {
     state.sharpening = parseInt(sharpeningSlider.value, 10);
     sharpeningValue.textContent = state.sharpening;
+  });
+
+  brightnessSlider.addEventListener('input', () => {
+    state.brightness = parseInt(brightnessSlider.value, 10);
+    brightnessValue.textContent = (state.brightness > 0 ? '+' : '') + state.brightness;
+  });
+
+  contrastSlider.addEventListener('input', () => {
+    state.contrast = parseInt(contrastSlider.value, 10);
+    contrastValue.textContent = (state.contrast > 0 ? '+' : '') + state.contrast;
+  });
+
+  grayscaleToggle.addEventListener('click', () => {
+    const on = grayscaleToggle.getAttribute('aria-checked') === 'true';
+    const next = !on;
+    grayscaleToggle.setAttribute('aria-checked', String(next));
+    grayscaleLabel.textContent = next ? 'Activé' : 'Désactivé';
+    state.grayscale = next;
   });
 
   fillToggle.addEventListener('click', () => {
@@ -779,6 +806,9 @@
       resizeMode: state.resizeMode,
       interpolation: state.interpolation,
       sharpening: state.sharpening,
+      brightness: state.brightness,
+      contrast: state.contrast,
+      grayscale: state.grayscale,
       fillTransparency: state.fillTransparency,
       fillColor: state.fillColor,
       exifCorrection: state.exifCorrection,
@@ -901,7 +931,15 @@
             ctx.imageSmoothingQuality = settings.interpolation;
           }
 
+          // Apply visual filters (brightness, contrast, grayscale)
+          const cssFilters = [];
+          if (settings.brightness !== 0) cssFilters.push(`brightness(${1 + settings.brightness / 100})`);
+          if (settings.contrast !== 0) cssFilters.push(`contrast(${1 + settings.contrast / 100})`);
+          if (settings.grayscale) cssFilters.push('grayscale(1)');
+          if (cssFilters.length) ctx.filter = cssFilters.join(' ');
+
           ctx.drawImage(resizeSrc, 0, 0, curW, curH, 0, 0, dstW, dstH);
+          if (cssFilters.length) ctx.filter = 'none';
 
           // Sharpening (applied after resize if sharpening > 0)
           if (settings.sharpening > 0) {

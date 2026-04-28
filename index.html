@@ -71,10 +71,10 @@
             </button>
           </div>
           <div class="presets-grid">
-            <button class="preset-btn" data-quality="100" data-alpha="100">Max qualité</button>
-            <button class="preset-btn active" data-quality="80" data-alpha="80">Équilibré</button>
-            <button class="preset-btn" data-quality="60" data-alpha="50">Web</button>
-            <button class="preset-btn" data-quality="30" data-alpha="30">Agressif</button>
+            <button class="preset-btn" data-quality="95" data-alpha="100">Max qualité</button>
+            <button class="preset-btn active" data-quality="85" data-alpha="100">Équilibré</button>
+            <button class="preset-btn" data-quality="75" data-alpha="80">Web</button>
+            <button class="preset-btn" data-quality="55" data-alpha="60">Agressif</button>
           </div>
         </div>
 
@@ -87,8 +87,8 @@
             </button>
           </div>
           <div class="slider-row">
-            <input type="range" id="qualitySlider" min="1" max="100" value="80" class="slider">
-            <span id="qualityValue" class="slider-value">80</span>
+            <input type="range" id="qualitySlider" min="1" max="100" value="85" class="slider">
+            <span id="qualityValue" class="slider-value">85</span>
           </div>
           <p id="sizeEstimate" class="option-hint"></p>
         </div>
@@ -102,8 +102,8 @@
             </button>
           </div>
           <div class="slider-row">
-            <input type="range" id="alphaSlider" min="0" max="100" value="80" class="slider">
-            <span id="alphaValue" class="slider-value">80</span>
+            <input type="range" id="alphaSlider" min="0" max="100" value="100" class="slider">
+            <span id="alphaValue" class="slider-value">100</span>
           </div>
         </div>
 
@@ -215,6 +215,44 @@
           <div class="slider-row">
             <input type="range" id="sharpeningSlider" min="0" max="100" value="0" class="slider">
             <span id="sharpeningValue" class="slider-value">0</span>
+          </div>
+
+          <!-- Brightness -->
+          <div class="option-label" style="margin-top:16px">
+            <label for="brightnessSlider">Luminosité</label>
+            <button class="info-btn" data-tooltip="Ajuste la luminosité globale avant l'encodage. Valeurs négatives assombrissent, positives éclaircissent. Recommandé : corriger les images sur/sous-exposées uniquement.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="brightnessSlider" min="-50" max="50" value="0" class="slider">
+            <span id="brightnessValue" class="slider-value">0</span>
+          </div>
+
+          <!-- Contrast -->
+          <div class="option-label" style="margin-top:16px">
+            <label for="contrastSlider">Contraste</label>
+            <button class="info-btn" data-tooltip="Accentue ou réduit l'écart entre tons clairs et sombres. Un léger +5 peut compenser l'adoucissement naturel de la compression WebP.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="contrastSlider" min="-50" max="50" value="0" class="slider">
+            <span id="contrastValue" class="slider-value">0</span>
+          </div>
+
+          <!-- Grayscale -->
+          <div class="option-label" style="margin-top:16px">
+            <label>Niveaux de gris</label>
+            <button class="info-btn" data-tooltip="Convertit l'image en noir & blanc avant l'encodage. Réduit la taille de 20–40 % supplémentaires. Irréversible dans le WebP produit — l'original n'est pas touché.">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+          </div>
+          <div class="toggle-row">
+            <button id="grayscaleToggle" class="toggle" role="switch" aria-checked="false">
+              <span class="toggle-knob"></span>
+            </button>
+            <span id="grayscaleLabel" class="toggle-label">Désactivé</span>
           </div>
 
           <!-- Fill Transparency -->
